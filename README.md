@@ -1,0 +1,2 @@
+# ckticker
+Stock ticker checker
