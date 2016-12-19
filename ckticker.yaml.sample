@@ -1,0 +1,19 @@
+---
+APPL:
+  last_high: 115.39
+  stopped: 1
+AMZN:
+  last_high: 752.88
+  # mark this position as stopped-out (sell) if it drops
+  # below (last_high * (1+stop_ratio))
+  stopped: 1
+BRK-B:
+  last_high: 152.67
+  # never mark this position as stopped out; email still shows it's drop from
+  # last_high if more than stop_ratio
+  stopped: 0
+GDX:
+  last_high: 19.51
+  # flagged for drop of 12% or more from last_high
+  stop_ratio: -0.12
+  stopped: 0
