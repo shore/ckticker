@@ -8,6 +8,8 @@ use strict;
 use warnings;
 
 use List::Util qw/ max /;
+use HTTP::Tiny;
+use JSON;
 
 my $DATA_FILE = 'ckticker.yaml';
 my $STOP_RATIO = -0.25;
@@ -88,49 +90,30 @@ sub generate_mail_body {
 # check back 1 month
 sub fetch_historical_high_and_close {
 	my $sym = shift;
-	my (@start, @stop);
-
-	@start = localtime(time - $SECS_PER_MONTH);
-	@stop  = localtime(time);
 
 	# find symbol for symbols held multiple times
 	(my $sym_root = $sym) =~ s/_\d+$//;
 
-	my %params = (
-		a => $start[4],
-		b => $start[3],
-		c => $start[5] + 1900,
-		d => $stop[4],
-		e => $stop[3],
-		f => $stop[5] + 1900,
-		s => $sym_root,
-		ignore => '.csv',
-	);
+    my $url = qq{https://finance.yahoo.com/quote/$sym_root/history?p=$sym_root};
+    my $ua = HTTP::Tiny->new(timeout => 10, );
+    my $response = $ua->get($url);
+    die "Failed to fetch page for $sym_root\n" unless $response->{success};
+    $response->{content} =~ m/root.App.main = ({.*});/ms;
+    my $json_data = $1;
 
-	use HTTP::Tiny;
-	my $ua = HTTP::Tiny->new(timeout => 10, );
-	my $response = $ua->get(
-		join('?', 'http://real-chart.finance.yahoo.com/table.csv',
-			join('&', map { "$_=$params{$_}" } sort keys %params))
-	);
-
-	unless ($response->{success}) {
-		warn "$sym: failed to fetch recent data";
-		return (-1, -1);
-	}
-
-	my $max = 0;
-	my $close;
-	for my $i (split(/\n/, $response->{content})) {
-		my @i = split(/,/, $i);
-		next unless $i[6] =~ /^[.0-9]+$/;
-		$max = $i[6] if $i[6] > $max;
-		$close = $i[6] unless defined $close;
-	}
+    my $json = JSON->new;
+    my $blob = $json->decode($json_data);
+    $blob = $blob->{context}{dispatcher}{stores}{HistoricalPriceStore}{prices};
+    my ($max, $close) = (0, 0);
+    foreach my $chunk (sort { $a->{date} <=> $b->{date} } @$blob) {
+        next unless $chunk->{close};
+        $close = $chunk->{close};
+        $max = $close if $max < $close;
+    }
 
 	if ($DEBUG) {
-		open my $fh, ">", "recent.$sym.csv";
-		print $fh $response->{content};
+		open my $fh, ">", "recent.$sym.json";
+		print $fh $json->pretty->encode($blob);
 		close $fh;
 	}
 
@@ -150,8 +133,7 @@ sub check_sym {
 	# change as percentage of comparison value
 	my $delta = ($close / $cmp - 1);
 
-	warn sprintf("%-6s (%07.3f, %07.3f) -> % .3f\n",
-			$sym, $last_high, $recent_high, $delta)
+	warn sprintf("%-6s (%07.3f, %07.3f, %07.3f) -> % .3f\n", $sym, $last_high, $recent_high, $close, $delta)
 		if $DEBUG;
 
 	return ($delta, $recent_high);
