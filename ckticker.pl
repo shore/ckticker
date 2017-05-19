@@ -47,7 +47,7 @@ sub generate_mail_body {
 
 	my %s = ( 'clear' => [ ], 'stopped' => [ ], 'unstopped' => [ ], );
 	my $group;
-	for my $key (keys %$status) {
+	for my $key (sort keys %$status) {
 		$group = (($$status{$key} > ($$data{$key}{stop_ratio} // $STOP_RATIO)) ? 'clear' :
 			($$data{$key}{stopped} ? 'stopped' : 'unstopped'));
 		push @{$s{$group}}, $key;
