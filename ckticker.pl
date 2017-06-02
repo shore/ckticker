@@ -11,7 +11,8 @@ use List::Util qw/ max /;
 use HTTP::Tiny;
 use JSON;
 
-my $DATA_FILE = 'ckticker.yaml';
+my $EMAIL_RECIP = $ARGV[0];
+my $DATA_FILE = $ARGV[1] // 'ckticker.yaml';
 my $STOP_RATIO = -0.25;
 
 my $SECS_PER_MONTH = 60 * 60 * 24 * 31;
@@ -144,11 +145,12 @@ sub check_sym {
 }
 
 sub main {
-	$DATA_FILE = $ARGV[0] // $DATA_FILE;
 	my $data = loadData($DATA_FILE);
 	my $status = { };
 	my $flag_updated = 0;
 	(my $data_source = $DATA_FILE) =~ s/\..*$//;
+
+	die "Invalid email recipient\n" unless $EMAIL_RECIP =~ m/.+@.+/;
 
 	for my $sym (sort keys %$data) {
 		my @pair = check_sym($sym, $$data{$sym}{last_high}, $$data{$sym}{entry_time} // -1);
@@ -170,7 +172,7 @@ sub main {
 
 	# send mail
 	if (! $DEBUG) {
-		open my $fh, '|-', '/usr/bin/mail', '-s', "Ticker Update [$data_source] ($stopped_count stopped out)", 'brian@cryptomonkeys.org'
+		open my $fh, '|-', '/usr/bin/mail', '-s', "Ticker Update [$data_source] ($stopped_count stopped out)", $EMAIL_RECIP
 			or die "Failed to open /usr/bin/mail";
 		print $fh $body;
 		close $fh;
