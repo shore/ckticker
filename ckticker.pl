@@ -90,6 +90,7 @@ sub generate_mail_body {
 # check back 1 month
 sub fetch_historical_high_and_close {
 	my $sym = shift;
+	my $entry_time = shift;
 
 	# find symbol for symbols held multiple times
 	(my $sym_root = $sym) =~ s/_\d+$//;
@@ -107,6 +108,8 @@ sub fetch_historical_high_and_close {
     my ($max, $close) = (0, 0);
     foreach my $chunk (sort { $a->{date} <=> $b->{date} } @$blob) {
         next unless $chunk->{close};
+        # only consider data points since entering the position
+        next if $entry_time > $chunk->{date};
         $close = $chunk->{close};
         $max = $close if $max < $close;
     }
@@ -124,8 +127,9 @@ sub fetch_historical_high_and_close {
 sub check_sym {
 	my $sym = shift;
 	my $last_high = shift;
+	my $entry_time = shift;
 
-	my ($recent_high, $close) = fetch_historical_high_and_close($sym);
+	my ($recent_high, $close) = fetch_historical_high_and_close($sym, $entry_time);
 	return ($recent_high, $close) if $close < 0;
 
 	my $cmp = $recent_high > $last_high ? $recent_high : $last_high;
@@ -145,7 +149,7 @@ sub main {
 	my $flag_updated = 0;
 
 	for my $sym (sort keys %$data) {
-		my @pair = check_sym($sym, $$data{$sym}{last_high});
+		my @pair = check_sym($sym, $$data{$sym}{last_high}, $$data{$sym}{entry_time} // -1);
 		next if $pair[1] < 0;
 
 		$$status{$sym} = $pair[0];
@@ -158,7 +162,7 @@ sub main {
 
 	my ($stopped_count, $body) = generate_mail_body($data, $status);
 	warn "$flag_updated updates\n" if $DEBUG;
-	if ($flag_updated > 0) {
+    if ($flag_updated > 0) {
 		dumpData($DATA_FILE, $data);
 	}
 
