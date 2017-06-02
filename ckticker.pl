@@ -148,6 +148,7 @@ sub main {
 	my $data = loadData($DATA_FILE);
 	my $status = { };
 	my $flag_updated = 0;
+	(my $data_source = $DATA_FILE) =~ s/\..*$//;
 
 	for my $sym (sort keys %$data) {
 		my @pair = check_sym($sym, $$data{$sym}{last_high}, $$data{$sym}{entry_time} // -1);
@@ -169,7 +170,7 @@ sub main {
 
 	# send mail
 	if (! $DEBUG) {
-		open my $fh, '|-', '/usr/bin/mail', '-s', "Ticker Update ($stopped_count stopped out)", 'brian@cryptomonkeys.org'
+		open my $fh, '|-', '/usr/bin/mail', '-s', "Ticker Update [$data_source] ($stopped_count stopped out)", 'brian@cryptomonkeys.org'
 			or die "Failed to open /usr/bin/mail";
 		print $fh $body;
 		close $fh;
