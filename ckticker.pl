@@ -96,7 +96,7 @@ sub fetch_historical_high_and_close {
 	(my $sym_root = $sym) =~ s/_\d+$//;
 
     my $url = qq{https://finance.yahoo.com/quote/$sym_root/history?p=$sym_root};
-    my $ua = HTTP::Tiny->new(timeout => 10, );
+    my $ua = HTTP::Tiny->new(timeout => 10, agent => 'Mozilla/5.0 (Android 4.4; Tablet; rv:41.0) Gecko/41.0 Firefox/41.0');
     my $response = $ua->get($url);
     die "Failed to fetch page for $sym_root\n" unless $response->{success};
     $response->{content} =~ m/root.App.main = ({.*});/ms;
