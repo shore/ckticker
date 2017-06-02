@@ -148,7 +148,10 @@ sub main {
 	my $data = loadData($DATA_FILE);
 	my $status = { };
 	my $flag_updated = 0;
-	(my $data_source = $DATA_FILE) =~ s/\..*$//;
+
+	my $data_source = $DATA_FILE;
+	$data_source =~ s/\..*$//;
+	$data_source =~ s/.*\///;
 
 	die "Invalid email recipient\n" unless $EMAIL_RECIP =~ m/.+@.+/;
 
