@@ -144,6 +144,7 @@ sub check_sym {
 }
 
 sub main {
+	$DATA_FILE = $ARGV[0] // $DATA_FILE;
 	my $data = loadData($DATA_FILE);
 	my $status = { };
 	my $flag_updated = 0;
