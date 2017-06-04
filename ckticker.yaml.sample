@@ -1,5 +1,7 @@
 ---
 APPL:
+  # entered position at this time, ignore closing prices prior to this timestamp
+  entry_time: 1496588400
   last_high: 115.39
   stopped: 1
 AMZN:
